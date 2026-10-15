@@ -1,6 +1,7 @@
 # Variáveis de ambiente e credenciais sensíveis
 .env
 backend/.env
+backend/config.php
 devops/**/.env
 *.env
 !.env.example

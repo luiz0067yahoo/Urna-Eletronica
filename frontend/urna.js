@@ -221,26 +221,58 @@ const obterEndpointBackend = () => {
     if (window.location.pathname.includes('/frontend/')) {
         return '../backend/votos/index.php';
     }
-    return 'backend/votos/index.php';
+    const base = window.location.pathname.replace(/\/index(\.html|\.php)?\/?$/, '');
+    const prefix = base.endsWith('/') ? base : (base ? base + '/' : '');
+    return `${prefix}backend/votos/index.php`;
 };
 
 const enviarVotosBackend = async (dadosVotos) => {
     try {
-        const endpoint = obterEndpointBackend();
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ votos: dadosVotos })
-        });
-        const result = await response.json();
-        console.log("Votos registrados no backend:", result);
-        return result;
+        let endpoint = obterEndpointBackend();
+        let response = null;
+
+        try {
+            response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ votos: dadosVotos })
+            });
+        } catch (eNet) {
+            // Falha de rede
+        }
+
+        if (!response || !response.ok) {
+            const fallback = endpoint.includes('/index.php')
+                ? endpoint.replace('/index.php', '')
+                : (endpoint.endsWith('/') ? `${endpoint}index.php` : `${endpoint}/index.php`);
+            try {
+                const resFallback = await fetch(fallback, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ votos: dadosVotos })
+                });
+                if (resFallback.ok) {
+                    response = resFallback;
+                }
+            } catch (eFallback) {}
+        }
+
+        if (response && response.ok) {
+            const result = await response.json();
+            console.log("Votos registrados no backend:", result);
+            return result;
+        } else {
+            console.warn("Backend retornou erro ao registrar votos:", response ? response.status : 'offline');
+        }
     } catch (error) {
         console.warn("Aviso ao enviar dados de voto para o backend:", error);
     }
 };
+
 
 const resetarUrna = () => {
     // 1. Reseta o registro de votos e candidato selecionado

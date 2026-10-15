@@ -1,8 +1,13 @@
 <?php
 /**
  * Classe Conexao
- * Gerencia a conexão com o banco de dados MySQL via PDO carregando variáveis de ambiente do arquivo .env.
+ * Gerencia a conexão com o banco de dados MySQL via PDO carregando variáveis de ambiente do arquivo .env ou config.php.
  */
+
+if (file_exists(__DIR__ . '/config.php')) {
+    require_once __DIR__ . '/config.php';
+}
+
 class Conexao {
     private $host;
     private $db_name;
@@ -23,10 +28,31 @@ class Conexao {
             $this->carregarEnv(__DIR__ . '/.env');
         }
 
-        $this->host = defined('DB_HOST') ? DB_HOST : (getenv('DB_HOST') ?: 'localhost');
-        $this->username = defined('DB_USER') ? DB_USER : (getenv('DB_USER') ?: 'root');
-        $this->password = defined('DB_PASS') ? DB_PASS : (getenv('DB_PASS') !== false ? getenv('DB_PASS') : '');
-        $this->db_name = defined('DB_NAME') ? DB_NAME : (getenv('DB_NAME') ?: 'urna');
+        $this->host = $this->obterConfig('DB_HOST', 'localhost');
+        $this->username = $this->obterConfig('DB_USER', 'root');
+        $this->password = $this->obterConfig('DB_PASS', '');
+        $this->db_name = $this->obterConfig('DB_NAME', 'urna');
+    }
+
+    /**
+     * Obtém valor de configuração respeitando a ordem:
+     * Constante definida > getenv() > $_ENV > $_SERVER > valor padrão
+     */
+    private function obterConfig($key, $default = '') {
+        if (defined($key)) {
+            return constant($key);
+        }
+        $val = getenv($key);
+        if ($val !== false && $val !== '') {
+            return $val;
+        }
+        if (isset($_ENV[$key]) && $_ENV[$key] !== '') {
+            return $_ENV[$key];
+        }
+        if (isset($_SERVER[$key]) && $_SERVER[$key] !== '') {
+            return $_SERVER[$key];
+        }
+        return $default;
     }
 
     /**
@@ -35,11 +61,15 @@ class Conexao {
      * @param string $path Caminho para o arquivo .env
      */
     private function carregarEnv($path) {
-        if (!file_exists($path)) {
+        if (!file_exists($path) || !is_readable($path)) {
             return;
         }
 
         $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if ($lines === false) {
+            return;
+        }
+
         foreach ($lines as $line) {
             $line = trim($line);
             if (empty($line) || strpos($line, '#') === 0) {
@@ -51,9 +81,12 @@ class Conexao {
                 $key = trim($key);
                 $val = trim($val, " \t\n\r\0\x0B\"'");
                 
-                // Só define se a variável ainda não estiver definida no ambiente (ex: Docker, K8s, SO)
-                if (getenv($key) === false || getenv($key) === '') {
-                    putenv("{$key}={$val}");
+                // Só define se a variável ainda não estiver definida no ambiente
+                $atual = $this->obterConfig($key, null);
+                if ($atual === null || $atual === '') {
+                    if (function_exists('putenv')) {
+                        @putenv("{$key}={$val}");
+                    }
                     $_ENV[$key] = $val;
                     $_SERVER[$key] = $val;
                 }
@@ -69,7 +102,7 @@ class Conexao {
     public function conectar() {
         $this->conn = null;
 
-        $port = defined('DB_PORT') ? DB_PORT : (getenv('DB_PORT') ?: '3306');
+        $port = $this->obterConfig('DB_PORT', '3306');
 
         try {
             $this->conn = new PDO(

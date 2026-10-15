@@ -32,10 +32,13 @@ let countdownSec = 5;
 // Endpoint adaptativo para o backend
 function getEndpointApuracao() {
     if (window.location.pathname.includes('/frontend/')) {
-        return '../backend/apuracao';
+        return '../backend/apuracao/index.php';
     }
-    return 'backend/apuracao';
+    const base = window.location.pathname.replace(/\/apuracao(\.html|\.php)?\/?$/, '');
+    const prefix = base.endsWith('/') ? base : (base ? base + '/' : '');
+    return `${prefix}backend/apuracao/index.php`;
 }
+
 
 // Obtém a lista completa de candidatos cadastrados para um determinado cargo
 function obterTodosCandidatosDoCargo(cargo) {
@@ -109,13 +112,27 @@ async function carregarApuracao() {
         try {
             response = await fetch(endpoint);
         } catch (e) {
-            const endpointFallback = endpoint.endsWith('.php') ? endpoint : `${endpoint}/index.php`;
-            response = await fetch(endpointFallback);
+            // Falha de rede inicial
         }
 
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+        if (!response || !response.ok) {
+            const endpointFallback = endpoint.includes('/index.php')
+                ? endpoint.replace('/index.php', '')
+                : (endpoint.endsWith('/') ? `${endpoint}index.php` : `${endpoint}/index.php`);
+            try {
+                const resFallback = await fetch(endpointFallback);
+                if (resFallback.ok) {
+                    response = resFallback;
+                }
+            } catch (eFallback) {
+                // Falha no fallback
+            }
         }
+
+        if (!response || !response.ok) {
+            throw new Error(`HTTP ${response ? response.status : 'offline'}`);
+        }
+
 
         const data = await response.json();
         dadosApuracaoAtual = data;
