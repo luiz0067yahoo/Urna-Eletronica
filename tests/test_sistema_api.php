@@ -114,7 +114,7 @@ class ApiTestSuite {
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
             $response = curl_exec($ch);
             $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $duracao = (microtime(true) - t0) * 1000;
+            $duracao = (microtime(true) - $t0) * 1000;
             curl_close($ch);
 
             $json = json_decode($response, true);
@@ -142,7 +142,7 @@ class ApiTestSuite {
                 preg_match('/HTTP\/\S*\s(\d{3})/', $http_response_header[0], $m);
                 $status = isset($m[1]) ? (int)$m[1] : 0;
             }
-            $duracao = (microtime(true) - t0) * 1000;
+            $duracao = (microtime(true) - $t0) * 1000;
             $json = json_decode($response, true);
             return [$status, $json !== null ? $json : $response, $duracao];
         }

@@ -103,7 +103,7 @@ La **Urna Electrónica Pokémon** reproduce con total fidelidad la experiencia d
   6. Presidente de la República *(2 dígitos)*
 - ⌨️ **Validador de Entrada por Software:** Control estricto de máscaras numéricas, tecla `BLANCO`, anulación con `CORRIGE` y registro con `CONFIRMA`.
 - 🔊 **Efectos Sonoros Auténticos:** Audio sintetizado mediante Web Audio API que emula las pulsaciones y el acorde final oficial.
-- �- 🔄 **Sincronización Periódica:** La pantalla de escrutinio consulta la base de datos cada 5 segundos sin recargar la página.
+- 🔄 **Sincronización Periódica:** La pantalla de escrutinio consulta la base de datos cada 5 segundos sin recargar la página.
 
 ---
 
